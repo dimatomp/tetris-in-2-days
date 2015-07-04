@@ -1,0 +1,45 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="net.dimatomp.tetris.MainActivity">
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="&lt;-"
+        android:onClick="moveLeft"
+        android:layout_above="@+id/putDown"
+        android:id="@+id/leftButton" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="V"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/putDown"/>
+    
+    <net.dimatomp.tetris.TetrisView
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@id/putDown"
+        android:layout_toStartOf="@+id/turn_button"
+        android:id="@+id/field" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:text="-&gt;"
+        android:onClick="moveRight"
+        android:layout_above="@+id/turn_button"
+        android:id="@+id/right_button" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:text="turn"
+        android:id="@+id/turn_button" />
+
+</RelativeLayout>
