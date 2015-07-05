@@ -1,0 +1,68 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="net.dimatomp.tetris.MainActivity">
+
+    <Button
+        android:id="@+id/leftButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/putDown"
+        android:onClick="moveLeft"
+        android:text="&lt;-" />
+
+    <Button
+        android:id="@+id/putDown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="V" />
+
+    <net.dimatomp.tetris.TetrisView
+        android:id="@+id/field"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@id/putDown"
+        android:layout_toStartOf="@+id/turn_button" />
+
+    <Button
+        android:id="@+id/right_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/turn_button"
+        android:layout_alignParentEnd="true"
+        android:onClick="moveRight"
+        android:text="-&gt;" />
+
+    <Button
+        android:id="@+id/turn_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:onClick="turnRight"
+        android:text="turn" />
+
+    <TextView
+        android:id="@+id/score_sign"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@id/field"
+        android:gravity="end"
+        android:text="Score:"
+        android:textAppearance="?android:textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/score"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@id/score_sign"
+        android:layout_toEndOf="@id/field"
+        android:gravity="end"
+        android:text="0"
+        android:textAppearance="?android:textAppearanceLarge" />
+
+</RelativeLayout>

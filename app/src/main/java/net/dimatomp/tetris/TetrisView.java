@@ -17,9 +17,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by dimatomp on 03.07.15.
- */
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
     private static final Random rng = new Random();
     private final Paint rectPaint = new Paint();
