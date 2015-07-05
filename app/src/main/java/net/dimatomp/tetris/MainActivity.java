@@ -5,6 +5,7 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity implements TetrisModel.Callback {
     private int points = 0;
@@ -50,6 +51,18 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt("points", points);
+    }
+
+    @Override
+    public void onGameOver() {
+        points = 0;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, "Game Over", Toast.LENGTH_SHORT).show();
+                ((TextView) findViewById(R.id.score)).setText("0");
+            }
+        });
     }
 
     @Override

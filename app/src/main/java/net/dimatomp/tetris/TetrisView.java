@@ -1,6 +1,5 @@
 package net.dimatomp.tetris;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -11,7 +10,6 @@ import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -29,17 +27,8 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
                 if (!model.moveY(1)) {
                     int fType = rng.nextInt(TetrisModel.getFiguresCount());
                     int dir = rng.nextInt(TetrisModel.getPosCount(fType));
-                    if (!model.throwFigure(fType, dir)) {
-                        interval = 0;
-                        ((Activity) getContext()).runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(getContext(), "Game Over", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    } else {
-                        interval = 500;
-                    }
+                    model.throwFigure(fType, dir);
+                    interval = 500;
                 }
                 try {
                     Thread.sleep(interval);
@@ -64,6 +53,16 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     public TetrisView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         getHolder().addCallback(this);
+    }
+
+    @Override
+    public void onGameOver() {
+        renderThread.execute(new Runnable() {
+            @Override
+            public void run() {
+                refresh(null, null);
+            }
+        });
     }
 
     public void stopPlaying() {

@@ -246,7 +246,7 @@ public class TetrisModel implements Parcelable {
         return true;
     }
 
-    public boolean throwFigure(int figType, int degree) {
+    public void throwFigure(int figType, int degree) {
         final Rect oldArea;
         final Rect newRect;
         List<Integer> remLines = new ArrayList<>();
@@ -254,8 +254,15 @@ public class TetrisModel implements Parcelable {
             oldArea = getFigureRect();
             for (int y = Math.max(-getY(), 0) - 1; y >= 0; y--) {
                 for (int x = 0; x < getFigureWidth(); x++)
-                    if (isFigurePart(x, y))
-                        return false;
+                    if (isFigurePart(x, y)) {
+                        field = new boolean[field.length][field[0].length];
+                        notify(new Consumer() {
+                            @Override
+                            public void apply(Callback callback) {
+                                callback.onGameOver();
+                            }
+                        });
+                    }
             }
             for (int x = Math.max(0, -getX()); x < getFigureWidth() && x + getX() < getWidth(); x++)
                 for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
@@ -294,8 +301,15 @@ public class TetrisModel implements Parcelable {
             int interval = getWidth() + xMin - xMax;
             figurePosX = rng.nextInt(interval) - xMin;
             figurePosY = -getFigureHeight() + 1;
-            if (!isValidState())
-                return false;
+            if (!isValidState()) {
+                field = new boolean[field.length][field[0].length];
+                notify(new Consumer() {
+                    @Override
+                    public void apply(Callback callback) {
+                        callback.onGameOver();
+                    }
+                });
+            }
             newRect = getFigureRect();
         }
         final int[] result = new int[remLines.size()];
@@ -310,7 +324,6 @@ public class TetrisModel implements Parcelable {
                 callback.onFigureMoved(oldArea, newRect);
             }
         });
-        return true;
     }
 
     public Rect getFigureRect() {
@@ -321,6 +334,8 @@ public class TetrisModel implements Parcelable {
         void onLinesRemoved(int... pos);
 
         void onFigureMoved(Rect oldArea, Rect newArea);
+
+        void onGameOver();
     }
 
     private interface Consumer {
