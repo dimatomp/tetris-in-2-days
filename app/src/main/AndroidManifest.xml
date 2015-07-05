@@ -8,7 +8,8 @@
         android:label="Application" >
         <activity
             android:name=".MainActivity"
-            android:label="Main Activity" >
+            android:label="Main Activity"
+            android:theme="@android:style/Theme.Holo.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -4,15 +4,14 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.widget.Button;
 
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -21,11 +20,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by dimatomp on 03.07.15.
  */
-public class TetrisView extends SurfaceView implements SurfaceHolder.Callback {
-    private TetrisModel model;
-    private ScheduledFuture updater, leftRight;
-    private ScheduledExecutorService renderThread = Executors.newSingleThreadScheduledExecutor();
+public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
+    private static final Random rng = new Random();
     private final Paint rectPaint = new Paint();
+    private TetrisModel model;
+    private ScheduledFuture updater;
+    private ScheduledExecutorService renderThread = Executors.newSingleThreadScheduledExecutor();
 
     public TetrisView(Context context) {
         super(context);
@@ -46,52 +46,64 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     public void stopPlaying() {
+        if (updater == null)
+            return;
         updater.cancel(true);
+        updater = null;
     }
 
-    public void moveLeft() {
-        final Rect old = getFigureRect();
-        if (model.moveX(-1)) {
-            renderThread.execute(new Runnable() {
-                @Override
-                public void run() {
-                    refresh(old);
-                }
-            });
-        }
-    }
-
-    public void moveRight() {
-        final Rect old = getFigureRect();
-        if (model.moveX(1)) {
-            renderThread.execute(new Runnable() {
-                @Override
-                public void run() {
-                    refresh(old);
-                }
-            });
-        }
+    @Override
+    public void onLinesRemoved(int... pos) {
+        int maxPos = Integer.MIN_VALUE;
+        for (int p : pos)
+            maxPos = Math.max(maxPos, p);
+        final int fMaxPos = maxPos;
+        renderThread.execute(new Runnable() {
+            @Override
+            public void run() {
+                refresh(new Rect(0, 0, model.getWidth(), fMaxPos + 1), null);
+            }
+        });
     }
 
     public TetrisModel getModel() {
         return model;
     }
 
+    @Override
+    public void onFigureMoved(final Rect oldArea, final Rect newArea) {
+        renderThread.execute(new Runnable() {
+            @Override
+            public void run() {
+                refresh(oldArea, newArea);
+            }
+        });
+    }
+
     public void startPlaying() {
-        model = new TetrisModel(40, 60);
+        if (updater != null)
+            return;
+        if (model == null)
+            model = new TetrisModel(15, 10);
+        else
+            renderThread.execute(new Runnable() {
+                @Override
+                public void run() {
+                    Rect field = new Rect(0, 0, model.getWidth(), model.getHeight());
+                    refresh(field, field);
+                }
+            });
+        model.registerCallback(this);
         updater = renderThread.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
-                Rect old = getFigureRect();
-                model.moveY(1);
-                refresh(old);
+                if (!model.moveY(1)) {
+                    int fType = rng.nextInt(TetrisModel.getFiguresCount());
+                    int dir = rng.nextInt(TetrisModel.getPosCount(fType));
+                    model.throwFigure(fType, dir);
+                }
             }
         }, 0, 500, TimeUnit.MILLISECONDS);
-    }
-
-    public Rect getFigureRect() {
-        return new Rect(model.getX(), model.getY(),
-                model.getX() + model.getFigureWidth(), model.getY() + model.getFigureHeight());
     }
 
     @Override
@@ -108,52 +120,76 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback {
         stopPlaying();
     }
 
-    private void refresh(Rect oldRect) {
-        SurfaceHolder holder = getHolder();
-        Canvas canvas = null;
-        try {
+    private Rect scaled(Rect dsc) {
+        return new Rect(getWidth() * dsc.left / model.getWidth(),
+                getHeight() * dsc.top / model.getHeight(),
+                getWidth() * dsc.right / model.getWidth(),
+                getHeight() * dsc.bottom / model.getHeight());
+    }
+
+    private void refresh(Rect oldRect, Rect newRect) {
+        final SurfaceHolder holder = getHolder();
+        synchronized (holder) {
             synchronized (model) {
-                Rect newRect = getFigureRect();
-                if (oldRect != null)
-                    newRect = new Rect(Math.min(oldRect.left, newRect.left),
-                           Math.min(oldRect.top, newRect.top),
-                           Math.max(oldRect.right, newRect.right),
-                           Math.max(oldRect.bottom, newRect.bottom));
-                Rect scaled = new Rect(newRect.left * getWidth() / model.getWidth(),
-                        newRect.top * getHeight() / model.getHeight(),
-                        newRect.right * getWidth() / model.getWidth(),
-                        newRect.bottom * getHeight() / model.getHeight());
-                canvas = holder.lockCanvas(scaled);
-                rectPaint.setColor(getResources().getColor(android.R.color.black));
-                canvas.drawRect(scaled, rectPaint);
-                rectPaint.setColor(getResources().getColor(R.color.block));
-                for (int x = newRect.left; x < newRect.right; x++)
-                    for (int y = newRect.top; y < newRect.bottom; y++) {
-                        if (model.isOccupied(x, y)) {
-                            canvas.drawRect(getWidth() * x / model.getWidth()
-                                    , getHeight() * y / model.getHeight()
-                                    , getWidth() * (x + 1) / model.getWidth()
-                                    , getHeight() * (y + 1) / model.getHeight(), rectPaint);
-                        }
+                if (newRect != null) {
+                    oldRect.left = Math.min(oldRect.left, newRect.left);
+                    oldRect.top = Math.min(oldRect.top, newRect.top);
+                    oldRect.right = Math.max(oldRect.right, newRect.right);
+                    oldRect.bottom = Math.max(oldRect.bottom, newRect.bottom);
+                }
+                oldRect.left--;
+                oldRect.top--;
+                oldRect.right++;
+                oldRect.bottom++;
+                Rect scaled = scaled(oldRect);
+                Canvas canvas = holder.lockCanvas(scaled);
+                if (canvas != null) {
+                    try {
+                        blankArea(canvas, scaled);
+                        refreshField(canvas);
+                        drawFigure(canvas);
+                    } finally {
+                        holder.unlockCanvasAndPost(canvas);
                     }
-                rectPaint.setColor(getResources().getColor(R.color.figure));
-                for (int x = 0; x < model.getFigureWidth(); x++)
-                    for (int y = 0; y < model.getFigureHeight(); y++) {
-                        if (model.isFigurePart(x, y)) {
-                            canvas.drawRect(getWidth() * (x + model.getX()) / model.getWidth()
-                                    , getHeight() * (y + model.getY()) / model.getHeight()
-                                    , getWidth() * (x + model.getX() + 1) / model.getWidth()
-                                    , getHeight() * (y + model.getY() + 1) / model.getHeight(), rectPaint);
-                        }
-                    }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (canvas != null) {
-                holder.unlockCanvasAndPost(canvas);
+                }
             }
         }
+    }
+
+    private void blankArea(Canvas canvas, Rect scaled) {
+        rectPaint.setColor(getResources().getColor(android.R.color.black));
+        canvas.drawRect(scaled, rectPaint);
+    }
+
+    private void refreshField(Canvas canvas) {
+        Drawable block = getResources().getDrawable(R.drawable.block);
+        float overlap = getResources().getDimension(R.dimen.overlap);
+        rectPaint.setColor(getResources().getColor(R.color.block));
+        for (int x = 0; x < model.getWidth(); x++)
+            for (int y = 0; y < model.getHeight(); y++) {
+                if (model.isOccupied(x, y)) {
+                    block.setBounds((int) (getWidth() * x / model.getWidth() - overlap)
+                            , (int) (getHeight() * y / model.getHeight() - overlap)
+                            , (int) (getWidth() * (x + 1) / model.getWidth() + overlap)
+                            , (int) (getHeight() * (y + 1) / model.getHeight() + overlap));
+                    block.draw(canvas);
+                }
+            }
+    }
+
+    private void drawFigure(Canvas canvas) {
+        Drawable figure = getResources().getDrawable(R.drawable.figure);
+        float overlap = getResources().getDimension(R.dimen.overlap);
+        for (int x = 0; x < model.getFigureWidth(); x++)
+            for (int y = 0; y < model.getFigureHeight(); y++) {
+                if (model.isFigurePart(x, y)) {
+                    figure.setBounds((int) (getWidth() * (x + model.getX()) / model.getWidth() - overlap)
+                            , (int) (getHeight() * (y + model.getY()) / model.getHeight() - overlap)
+                            , (int) (getWidth() * (x + model.getX() + 1) / model.getWidth() + overlap)
+                            , (int) (getHeight() * (y + model.getY() + 1) / model.getHeight() + overlap));
+                    figure.draw(canvas);
+                }
+            }
     }
 
     @Override
