@@ -42,6 +42,10 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
         });
     }
 
+    public void speedUp(View button) {
+        ((TetrisView) findViewById(R.id.field)).speedUp();
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -50,7 +54,6 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
 
     @Override
     public void onFigureMoved(Rect oldArea, Rect newArea) {
-
     }
 
     public void moveLeft(View button) {

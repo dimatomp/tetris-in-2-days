@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="overlap">0.5dip</dimen>
+    <dimen name="stroke_size">1dip</dimen>
     <dimen name="square_size">16dip</dimen>
 </resources>

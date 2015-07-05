@@ -1,5 +1,6 @@
 package net.dimatomp.tetris;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -10,43 +11,73 @@ import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
+    public static final int FIELD_SIDE = 24;
     private static final Random rng = new Random();
-    private final Paint rectPaint = new Paint();
+    volatile long interval;
     private TetrisModel model;
-    private ScheduledFuture updater;
-    private ScheduledExecutorService renderThread = Executors.newSingleThreadScheduledExecutor();
+    private final Thread updateThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            while (interval > 0) {
+                if (!model.moveY(1)) {
+                    int fType = rng.nextInt(TetrisModel.getFiguresCount());
+                    int dir = rng.nextInt(TetrisModel.getPosCount(fType));
+                    if (!model.throwFigure(fType, dir)) {
+                        interval = 0;
+                        ((Activity) getContext()).runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getContext(), "Game Over", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        interval = 500;
+                    }
+                }
+                try {
+                    Thread.sleep(interval);
+                } catch (InterruptedException paused) {
+                    break;
+                }
+            }
+        }
+    });
+    private ExecutorService renderThread = Executors.newSingleThreadExecutor();
 
     public TetrisView(Context context) {
         super(context);
-        rectPaint.setStyle(Paint.Style.FILL);
         getHolder().addCallback(this);
     }
 
     public TetrisView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        rectPaint.setStyle(Paint.Style.FILL);
         getHolder().addCallback(this);
     }
 
     public TetrisView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        rectPaint.setStyle(Paint.Style.FILL);
         getHolder().addCallback(this);
     }
 
     public void stopPlaying() {
-        if (updater == null)
+        if (interval == 0)
             return;
-        updater.cancel(true);
-        updater = null;
+        updateThread.interrupt();
+        while (true) {
+            try {
+                updateThread.join();
+            } catch (InterruptedException ignore) {
+                continue;
+            }
+            break;
+        }
     }
 
     @Override
@@ -77,30 +108,25 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         });
     }
 
+    public void speedUp() {
+        interval = 50;
+    }
+
     public void startPlaying() {
-        if (updater != null)
+        if (interval > 0)
             return;
-        if (model == null)
-            model = new TetrisModel(15, 10);
-        else
-            renderThread.execute(new Runnable() {
-                @Override
-                public void run() {
-                    Rect field = new Rect(0, 0, model.getWidth(), model.getHeight());
-                    refresh(field, field);
-                }
-            });
-        model.registerCallback(this);
-        updater = renderThread.scheduleWithFixedDelay(new Runnable() {
+        interval = 500;
+        if (model == null) {
+            model = new TetrisModel(FIELD_SIDE, FIELD_SIDE);
+        }
+        renderThread.execute(new Runnable() {
             @Override
             public void run() {
-                if (!model.moveY(1)) {
-                    int fType = rng.nextInt(TetrisModel.getFiguresCount());
-                    int dir = rng.nextInt(TetrisModel.getPosCount(fType));
-                    model.throwFigure(fType, dir);
-                }
+                refresh(null, null);
             }
-        }, 0, 500, TimeUnit.MILLISECONDS);
+        });
+        model.registerCallback(this);
+        updateThread.start();
     }
 
     @Override
@@ -117,17 +143,31 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         stopPlaying();
     }
 
+    private int getHorOffset() {
+        return Math.max(0, (getWidth() - getHeight()) / 2);
+    }
+
+    private int getVerOffset() {
+        return Math.max(0, (getHeight() - getWidth()) / 2);
+    }
+
+    private int getXPos(int x) {
+        return getHorOffset() + Math.min(getWidth(), getHeight()) * x / model.getWidth();
+    }
+
+    private int getYPos(int y) {
+        return getVerOffset() + Math.min(getWidth(), getHeight()) * y / model.getHeight();
+    }
+
     private Rect scaled(Rect dsc) {
-        return new Rect(getWidth() * dsc.left / model.getWidth(),
-                getHeight() * dsc.top / model.getHeight(),
-                getWidth() * dsc.right / model.getWidth(),
-                getHeight() * dsc.bottom / model.getHeight());
+        return new Rect(getXPos(dsc.left), getYPos(dsc.top), getXPos(dsc.right), getYPos(dsc.bottom));
     }
 
     private void refresh(Rect oldRect, Rect newRect) {
         final SurfaceHolder holder = getHolder();
-        synchronized (holder) {
-            synchronized (model) {
+        synchronized (model) {
+            Rect scaled;
+            if (oldRect != null) {
                 if (newRect != null) {
                     oldRect.left = Math.min(oldRect.left, newRect.left);
                     oldRect.top = Math.min(oldRect.top, newRect.top);
@@ -138,37 +178,49 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
                 oldRect.top--;
                 oldRect.right++;
                 oldRect.bottom++;
-                Rect scaled = scaled(oldRect);
-                Canvas canvas = holder.lockCanvas(scaled);
-                if (canvas != null) {
-                    try {
-                        blankArea(canvas, scaled);
-                        refreshField(canvas);
-                        drawFigure(canvas);
-                    } finally {
-                        holder.unlockCanvasAndPost(canvas);
-                    }
+                scaled = scaled(oldRect);
+            } else {
+                getDrawingRect(scaled = new Rect());
+            }
+            Canvas canvas = holder.lockCanvas(scaled);
+            if (canvas != null) {
+                try {
+                    blankArea(canvas, scaled);
+                    drawBorder(canvas);
+                    refreshField(canvas);
+                    drawFigure(canvas);
+                } finally {
+                    holder.unlockCanvasAndPost(canvas);
                 }
             }
         }
     }
 
     private void blankArea(Canvas canvas, Rect scaled) {
+        Paint rectPaint = new Paint();
         rectPaint.setColor(getResources().getColor(android.R.color.black));
+        rectPaint.setStyle(Paint.Style.FILL);
         canvas.drawRect(scaled, rectPaint);
+    }
+
+    private void drawBorder(Canvas canvas) {
+        Paint rectPaint = new Paint();
+        rectPaint.setColor(getResources().getColor(android.R.color.white));
+        rectPaint.setStyle(Paint.Style.STROKE);
+        float overlap = getResources().getDimension(R.dimen.stroke_size);
+        rectPaint.setStrokeWidth(overlap);
+        canvas.drawRect(getXPos(0) - overlap, getYPos(0) - overlap,
+                getXPos(model.getWidth()) + overlap, getYPos(model.getHeight()) + overlap, rectPaint);
     }
 
     private void refreshField(Canvas canvas) {
         Drawable block = getResources().getDrawable(R.drawable.block);
-        float overlap = getResources().getDimension(R.dimen.overlap);
-        rectPaint.setColor(getResources().getColor(R.color.block));
+        float overlap = getResources().getDimension(R.dimen.stroke_size) / 2;
         for (int x = 0; x < model.getWidth(); x++)
             for (int y = 0; y < model.getHeight(); y++) {
                 if (model.isOccupied(x, y)) {
-                    block.setBounds((int) (getWidth() * x / model.getWidth() - overlap)
-                            , (int) (getHeight() * y / model.getHeight() - overlap)
-                            , (int) (getWidth() * (x + 1) / model.getWidth() + overlap)
-                            , (int) (getHeight() * (y + 1) / model.getHeight() + overlap));
+                    block.setBounds((int) (getXPos(x) - overlap), (int) (getYPos(y) - overlap),
+                            (int) (getXPos(x + 1) + overlap), (int) (getYPos(y + 1) + overlap));
                     block.draw(canvas);
                 }
             }
@@ -176,14 +228,14 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     private void drawFigure(Canvas canvas) {
         Drawable figure = getResources().getDrawable(R.drawable.figure);
-        float overlap = getResources().getDimension(R.dimen.overlap);
-        for (int x = 0; x < model.getFigureWidth(); x++)
-            for (int y = 0; y < model.getFigureHeight(); y++) {
+        float overlap = getResources().getDimension(R.dimen.stroke_size) / 2;
+        for (int x = Math.max(0, -model.getX()); x < model.getFigureWidth(); x++)
+            for (int y = Math.max(0, -model.getY()); y < model.getFigureHeight(); y++) {
                 if (model.isFigurePart(x, y)) {
-                    figure.setBounds((int) (getWidth() * (x + model.getX()) / model.getWidth() - overlap)
-                            , (int) (getHeight() * (y + model.getY()) / model.getHeight() - overlap)
-                            , (int) (getWidth() * (x + model.getX() + 1) / model.getWidth() + overlap)
-                            , (int) (getHeight() * (y + model.getY() + 1) / model.getHeight() + overlap));
+                    figure.setBounds((int) (getXPos(x + model.getX()) - overlap)
+                            , (int) (getYPos(y + model.getY()) - overlap)
+                            , (int) (getXPos(x + model.getX() + 1) + overlap)
+                            , (int) (getYPos(y + model.getY() + 1) + overlap));
                     figure.draw(canvas);
                 }
             }

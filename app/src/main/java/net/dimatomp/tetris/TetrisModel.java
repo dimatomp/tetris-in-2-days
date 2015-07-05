@@ -246,17 +246,22 @@ public class TetrisModel implements Parcelable {
         return true;
     }
 
-    public void throwFigure(int figType, int degree) {
+    public boolean throwFigure(int figType, int degree) {
         final Rect oldArea;
         final Rect newRect;
         List<Integer> remLines = new ArrayList<>();
         synchronized (this) {
             oldArea = getFigureRect();
-            for (int x = Math.max(0, -getX()); x < getFigureWidth(); x++)
-                for (int y = Math.max(0, -getY()); y < getFigureHeight(); y++) {
+            for (int y = Math.max(-getY(), 0) - 1; y >= 0; y--) {
+                for (int x = 0; x < getFigureWidth(); x++)
+                    if (isFigurePart(x, y))
+                        return false;
+            }
+            for (int x = Math.max(0, -getX()); x < getFigureWidth() && x + getX() < getWidth(); x++)
+                for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
                     field[x + getX()][y + getY()] |= isFigurePart(x, y);
                 }
-            for (int y = 0; y < getFigureHeight(); y++) {
+            for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
                 boolean ok = true;
                 for (int x = 0; ok && x < getWidth(); x++)
                     ok = isOccupied(x, y + getY());
@@ -289,6 +294,8 @@ public class TetrisModel implements Parcelable {
             int interval = getWidth() + xMin - xMax;
             figurePosX = rng.nextInt(interval) - xMin;
             figurePosY = -getFigureHeight() + 1;
+            if (!isValidState())
+                return false;
             newRect = getFigureRect();
         }
         final int[] result = new int[remLines.size()];
@@ -303,6 +310,7 @@ public class TetrisModel implements Parcelable {
                 callback.onFigureMoved(oldArea, newRect);
             }
         });
+        return true;
     }
 
     public Rect getFigureRect() {
