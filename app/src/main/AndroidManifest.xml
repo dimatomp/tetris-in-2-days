@@ -24,7 +24,7 @@
             android:name=".HighScoreStorage"
             android:authorities="net.dimatomp.tetris"
             android:enabled="true"
-            android:exported="false"></provider>
+            android:exported="false" />
     </application>
 
 </manifest>

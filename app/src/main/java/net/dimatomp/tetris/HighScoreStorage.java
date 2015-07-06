@@ -32,7 +32,7 @@ public class HighScoreStorage extends ContentProvider {
     public Uri insert(Uri uri, ContentValues values) {
         try (SQLiteDatabase database = instance.getWritableDatabase()) {
             database.insert(TABLE_NAME, null, values);
-            return Uri.parse("content://net.dimatomp.tetris/high_score");
+            return Uri.parse("content://net.dimatomp.tetris/highscore");
         }
     }
 
@@ -45,9 +45,8 @@ public class HighScoreStorage extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
-        try (SQLiteDatabase database = instance.getReadableDatabase()) {
-            return database.query(TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder);
-        }
+        SQLiteDatabase database = instance.getReadableDatabase();
+        return database.query(TABLE_NAME, projection, selection, selectionArgs, null, null, sortOrder);
     }
 
     @Override

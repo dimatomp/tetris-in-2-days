@@ -51,7 +51,7 @@ public class MainMenu extends ListActivity {
 
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-            return new CursorLoader(getActivity(), Uri.parse("net.dimatomp.tetris/highscore"),
+            return new CursorLoader(getActivity(), Uri.parse("content://net.dimatomp.tetris/highscore"),
                     null, null, null, VALUE + " DESC");
         }
 
