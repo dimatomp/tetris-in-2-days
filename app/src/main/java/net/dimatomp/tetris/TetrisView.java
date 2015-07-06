@@ -57,7 +57,6 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     @Override
     public void onGameOver() {
-        stopPlaying();
         renderThread.shutdown();
     }
 
@@ -82,7 +81,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         for (int p : pos)
             maxPos = Math.max(maxPos, p);
         final int fMaxPos = maxPos;
-        renderThread.execute(new Refresher(new Rect(0, 0, model.getWidth(), fMaxPos + 1), null));
+        renderThread.execute(new Refresher(new Rect(0, 0, model.getWidth(), fMaxPos + 1)));
     }
 
     public TetrisModel getModel() {
@@ -91,7 +90,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     @Override
     public void onFigureMoved(Rect oldArea, Rect newArea) {
-        renderThread.execute(new Refresher(oldArea, model.getFigureRect()));
+        renderThread.execute(new Refresher(oldArea));
     }
 
     public void speedUp() {
@@ -108,7 +107,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             int dir = rng.nextInt(TetrisModel.getPosCount(fType));
             model.placeNewFigure(fType, dir);
         }
-        renderThread.execute(new Refresher(null, null));
+        renderThread.execute(new Refresher(null));
         model.registerCallback(this);
         updateThread.start();
     }
@@ -213,11 +212,9 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     private class Refresher implements Runnable {
         final Rect oldRect;
-        final Rect newRect;
 
-        public Refresher(Rect oldRect, Rect newRect) {
+        public Refresher(Rect oldRect) {
             this.oldRect = oldRect;
-            this.newRect = newRect;
         }
 
         @Override
@@ -225,6 +222,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             final SurfaceHolder holder = getHolder();
             synchronized (model) {
                 Rect scaled;
+                Rect newRect = model.getFigureRect();
                 if (oldRect != null) {
                     if (newRect != null) {
                         oldRect.left = Math.min(oldRect.left, newRect.left);

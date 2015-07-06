@@ -262,6 +262,7 @@ public class TetrisModel implements Parcelable {
                                 callback.onGameOver();
                             }
                         });
+                        return;
                     }
             }
             for (int x = Math.max(0, -getX()); x < getFigureWidth() && x + getX() < getWidth(); x++)
@@ -289,6 +290,7 @@ public class TetrisModel implements Parcelable {
                         callback.onGameOver();
                     }
                 });
+                return;
             }
             newRect = getFigureRect();
         }
