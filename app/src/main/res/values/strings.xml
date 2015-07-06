@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tetris In 2 Days</string>
+    <string name="left_arrow"><![CDATA[<-]]></string>
+    <string name="down_arrow">V</string>
+    <string name="right_arrow"><![CDATA[->]]></string>
+    <string name="turn_sign">turn</string>
+    <string name="score_word">Score:&#160;</string>
     <string-array name="main_menu">
         <item>New Game</item>
         <item>High Score</item>

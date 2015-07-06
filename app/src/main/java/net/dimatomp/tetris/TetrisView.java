@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
     public static final int FIELD_SIDE = 24;
     private static final Random rng = new Random();
+    private final ExecutorService renderThread = Executors.newSingleThreadExecutor();
     volatile long interval;
     private TetrisModel model;
     private final Thread updateThread = new Thread(new Runnable() {
@@ -38,7 +39,6 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             }
         }
     });
-    private ExecutorService renderThread = Executors.newSingleThreadExecutor();
 
     public TetrisView(Context context) {
         super(context);

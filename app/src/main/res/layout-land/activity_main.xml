@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/putDown"
         android:onClick="moveLeft"
-        android:text="&lt;-" />
+        android:text="@string/left_arrow" />
 
     <Button
         android:id="@+id/putDown"
@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:onClick="speedUp"
-        android:text="V" />
+        android:text="@string/down_arrow" />
 
     <net.dimatomp.tetris.TetrisView
         android:id="@+id/field"
@@ -34,7 +34,7 @@
         android:layout_above="@+id/turn_button"
         android:layout_alignParentEnd="true"
         android:onClick="moveRight"
-        android:text="-&gt;" />
+        android:text="@string/right_arrow" />
 
     <Button
         android:id="@+id/turn_button"
@@ -43,7 +43,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
         android:onClick="turnRight"
-        android:text="turn" />
+        android:text="@string/turn_sign" />
 
     <TextView
         android:id="@+id/score_sign"
@@ -52,7 +52,7 @@
         android:layout_alignParentEnd="true"
         android:layout_toEndOf="@id/field"
         android:gravity="end"
-        android:text="Score:"
+        android:text="@string/score_word"
         android:textAppearance="?android:textAppearanceMedium" />
 
     <TextView

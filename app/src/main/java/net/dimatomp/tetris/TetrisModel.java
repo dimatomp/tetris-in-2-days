@@ -49,7 +49,7 @@ public class TetrisModel implements Parcelable {
             }
     };
     private static final Random rng = new Random();
-    private Map<Callback, Object> callbacks = new IdentityHashMap<>();
+    private final Map<Callback, Object> callbacks = new IdentityHashMap<>();
     private int figureType;
     private int turnDegree;
     private int figurePosX;
