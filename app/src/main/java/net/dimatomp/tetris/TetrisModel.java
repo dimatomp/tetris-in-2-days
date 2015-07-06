@@ -280,27 +280,7 @@ public class TetrisModel implements Parcelable {
                     remLines.add(y + getY());
                 }
             }
-            setFigureType(figType);
-            setTurnDegree(degree);
-            int xMin = 0;
-            minLoop:
-            while (true) {
-                for (int y = 0; y < getFigureHeight(); y++)
-                    if (isFigurePart(xMin, y))
-                        break minLoop;
-                xMin++;
-            }
-            int xMax = getFigureWidth();
-            maxLoop:
-            while (true) {
-                for (int y = 0; y < getFigureHeight(); y++)
-                    if (isFigurePart(xMax - 1, y))
-                        break maxLoop;
-                xMax--;
-            }
-            int interval = getWidth() + xMin - xMax;
-            figurePosX = rng.nextInt(interval) - xMin;
-            figurePosY = -getFigureHeight() + 1;
+            placeNewFigure(figType, degree);
             if (!isValidState()) {
                 field = new boolean[field.length][field[0].length];
                 notify(new Consumer() {
@@ -326,7 +306,31 @@ public class TetrisModel implements Parcelable {
         });
     }
 
-    public Rect getFigureRect() {
+    public void placeNewFigure(int figType, int degree) {
+        setFigureType(figType);
+        setTurnDegree(degree);
+        int xMin = 0;
+        minLoop:
+        while (true) {
+            for (int y = 0; y < getFigureHeight(); y++)
+                if (isFigurePart(xMin, y))
+                    break minLoop;
+            xMin++;
+        }
+        int xMax = getFigureWidth();
+        maxLoop:
+        while (true) {
+            for (int y = 0; y < getFigureHeight(); y++)
+                if (isFigurePart(xMax - 1, y))
+                    break maxLoop;
+            xMax--;
+        }
+        int interval = getWidth() + xMin - xMax;
+        figurePosX = rng.nextInt(interval) - xMin;
+        figurePosY = -getFigureHeight() + 1;
+    }
+
+    public synchronized Rect getFigureRect() {
         return new Rect(getX(), getY(), getX() + getFigureWidth(), getY() + getFigureHeight());
     }
 

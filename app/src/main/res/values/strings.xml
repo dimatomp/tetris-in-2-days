@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tetris In 2 Days</string>
+    <string-array name="main_menu">
+        <item>New Game</item>
+        <item>High Score</item>
+    </string-array>
+</resources>

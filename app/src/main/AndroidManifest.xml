@@ -5,16 +5,26 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Application" >
+        android:label="@string/app_name">
         <activity
             android:name=".MainActivity"
-            android:label="Main Activity"
-            android:theme="@android:style/Theme.Holo.NoActionBar">
+            android:label="@string/app_name"
+            android:parentActivityName=".MainMenu"
+            android:theme="@android:style/Theme.Holo.NoActionBar"></activity>
+        <activity
+            android:name=".MainMenu"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name=".HighScoreStorage"
+            android:authorities="net.dimatomp.tetris"
+            android:enabled="true"
+            android:exported="false"></provider>
     </application>
 
 </manifest>

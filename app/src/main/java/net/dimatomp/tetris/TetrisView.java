@@ -57,17 +57,14 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     @Override
     public void onGameOver() {
-        renderThread.execute(new Runnable() {
-            @Override
-            public void run() {
-                refresh(null, null);
-            }
-        });
+        stopPlaying();
+        renderThread.shutdown();
     }
 
     public void stopPlaying() {
         if (interval == 0)
             return;
+        interval = 0;
         updateThread.interrupt();
         while (true) {
             try {
@@ -85,12 +82,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         for (int p : pos)
             maxPos = Math.max(maxPos, p);
         final int fMaxPos = maxPos;
-        renderThread.execute(new Runnable() {
-            @Override
-            public void run() {
-                refresh(new Rect(0, 0, model.getWidth(), fMaxPos + 1), null);
-            }
-        });
+        renderThread.execute(new Refresher(new Rect(0, 0, model.getWidth(), fMaxPos + 1), null));
     }
 
     public TetrisModel getModel() {
@@ -98,13 +90,8 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     @Override
-    public void onFigureMoved(final Rect oldArea, final Rect newArea) {
-        renderThread.execute(new Runnable() {
-            @Override
-            public void run() {
-                refresh(oldArea, newArea);
-            }
-        });
+    public void onFigureMoved(Rect oldArea, Rect newArea) {
+        renderThread.execute(new Refresher(oldArea, model.getFigureRect()));
     }
 
     public void speedUp() {
@@ -117,13 +104,11 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         interval = 500;
         if (model == null) {
             model = new TetrisModel(FIELD_SIDE, FIELD_SIDE);
+            int fType = rng.nextInt(TetrisModel.getFiguresCount());
+            int dir = rng.nextInt(TetrisModel.getPosCount(fType));
+            model.placeNewFigure(fType, dir);
         }
-        renderThread.execute(new Runnable() {
-            @Override
-            public void run() {
-                refresh(null, null);
-            }
-        });
+        renderThread.execute(new Refresher(null, null));
         model.registerCallback(this);
         updateThread.start();
     }
@@ -160,39 +145,6 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     private Rect scaled(Rect dsc) {
         return new Rect(getXPos(dsc.left), getYPos(dsc.top), getXPos(dsc.right), getYPos(dsc.bottom));
-    }
-
-    private void refresh(Rect oldRect, Rect newRect) {
-        final SurfaceHolder holder = getHolder();
-        synchronized (model) {
-            Rect scaled;
-            if (oldRect != null) {
-                if (newRect != null) {
-                    oldRect.left = Math.min(oldRect.left, newRect.left);
-                    oldRect.top = Math.min(oldRect.top, newRect.top);
-                    oldRect.right = Math.max(oldRect.right, newRect.right);
-                    oldRect.bottom = Math.max(oldRect.bottom, newRect.bottom);
-                }
-                oldRect.left--;
-                oldRect.top--;
-                oldRect.right++;
-                oldRect.bottom++;
-                scaled = scaled(oldRect);
-            } else {
-                getDrawingRect(scaled = new Rect());
-            }
-            Canvas canvas = holder.lockCanvas(scaled);
-            if (canvas != null) {
-                try {
-                    blankArea(canvas, scaled);
-                    drawBorder(canvas);
-                    refreshField(canvas);
-                    drawFigure(canvas);
-                } finally {
-                    holder.unlockCanvasAndPost(canvas);
-                }
-            }
-        }
     }
 
     private void blankArea(Canvas canvas, Rect scaled) {
@@ -257,5 +209,49 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             model = ((Bundle) state).getParcelable("tetrisModel");
         } else
             super.onRestoreInstanceState(state);
+    }
+
+    private class Refresher implements Runnable {
+        final Rect oldRect;
+        final Rect newRect;
+
+        public Refresher(Rect oldRect, Rect newRect) {
+            this.oldRect = oldRect;
+            this.newRect = newRect;
+        }
+
+        @Override
+        public void run() {
+            final SurfaceHolder holder = getHolder();
+            synchronized (model) {
+                Rect scaled;
+                if (oldRect != null) {
+                    if (newRect != null) {
+                        oldRect.left = Math.min(oldRect.left, newRect.left);
+                        oldRect.top = Math.min(oldRect.top, newRect.top);
+                        oldRect.right = Math.max(oldRect.right, newRect.right);
+                        oldRect.bottom = Math.max(oldRect.bottom, newRect.bottom);
+                    }
+                    oldRect.left--;
+                    oldRect.top--;
+                    oldRect.right++;
+                    oldRect.bottom++;
+                    scaled = scaled(oldRect);
+                } else {
+                    getDrawingRect(scaled = new Rect());
+                }
+                Canvas canvas = holder.lockCanvas(scaled);
+                if (canvas != null) {
+                    try {
+                        blankArea(canvas, scaled);
+                        drawBorder(canvas);
+                        refreshField(canvas);
+                        drawFigure(canvas);
+                    } finally {
+                        holder.unlockCanvasAndPost(canvas);
+                    }
+                }
+            }
+        }
     }
 }
