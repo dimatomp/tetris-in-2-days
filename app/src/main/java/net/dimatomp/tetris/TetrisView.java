@@ -12,13 +12,10 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
     public static final int FIELD_SIDE = 24;
     private static final Random rng = new Random();
-    private final ExecutorService renderThread = Executors.newSingleThreadExecutor();
     volatile long interval;
     private TetrisModel model;
     private final Thread updateThread = new Thread(new Runnable() {
@@ -57,7 +54,6 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     @Override
     public void onGameOver() {
-        renderThread.shutdown();
     }
 
     public void stopPlaying() {
@@ -81,7 +77,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         for (int p : pos)
             maxPos = Math.max(maxPos, p);
         final int fMaxPos = maxPos;
-        renderThread.execute(new Refresher(new Rect(0, 0, model.getWidth(), fMaxPos + 1)));
+        refresh(new Rect(0, 0, model.getWidth(), fMaxPos + 1));
     }
 
     public TetrisModel getModel() {
@@ -89,8 +85,8 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     @Override
-    public void onFigureMoved(Rect oldArea, Rect newArea) {
-        renderThread.execute(new Refresher(oldArea));
+    public void onFigureMoved(Rect oldArea) {
+        refresh(oldArea);
     }
 
     public void speedUp() {
@@ -107,7 +103,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             int dir = rng.nextInt(TetrisModel.getPosCount(fType));
             model.placeNewFigure(fType, dir);
         }
-        renderThread.execute(new Refresher(null));
+        refresh(null);
         model.registerCallback(this);
         updateThread.start();
     }
@@ -210,44 +206,35 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             super.onRestoreInstanceState(state);
     }
 
-    private class Refresher implements Runnable {
-        final Rect oldRect;
-
-        public Refresher(Rect oldRect) {
-            this.oldRect = oldRect;
-        }
-
-        @Override
-        public void run() {
-            final SurfaceHolder holder = getHolder();
-            synchronized (model) {
-                Rect scaled;
-                Rect newRect = model.getFigureRect();
-                if (oldRect != null) {
-                    if (newRect != null) {
-                        oldRect.left = Math.min(oldRect.left, newRect.left);
-                        oldRect.top = Math.min(oldRect.top, newRect.top);
-                        oldRect.right = Math.max(oldRect.right, newRect.right);
-                        oldRect.bottom = Math.max(oldRect.bottom, newRect.bottom);
-                    }
-                    oldRect.left--;
-                    oldRect.top--;
-                    oldRect.right++;
-                    oldRect.bottom++;
-                    scaled = scaled(oldRect);
-                } else {
-                    getDrawingRect(scaled = new Rect());
+    public void refresh(Rect oldRect) {
+        final SurfaceHolder holder = getHolder();
+        synchronized (model) {
+            Rect scaled;
+            Rect newRect = model.getFigureRect();
+            if (oldRect != null) {
+                if (newRect != null) {
+                    oldRect.left = Math.min(oldRect.left, newRect.left);
+                    oldRect.top = Math.min(oldRect.top, newRect.top);
+                    oldRect.right = Math.max(oldRect.right, newRect.right);
+                    oldRect.bottom = Math.max(oldRect.bottom, newRect.bottom);
                 }
-                Canvas canvas = holder.lockCanvas(scaled);
-                if (canvas != null) {
-                    try {
-                        blankArea(canvas, scaled);
-                        drawBorder(canvas);
-                        refreshField(canvas);
-                        drawFigure(canvas);
-                    } finally {
-                        holder.unlockCanvasAndPost(canvas);
-                    }
+                oldRect.left--;
+                oldRect.top--;
+                oldRect.right++;
+                oldRect.bottom++;
+                scaled = scaled(oldRect);
+            } else {
+                getDrawingRect(scaled = new Rect());
+            }
+            Canvas canvas = holder.lockCanvas(scaled);
+            if (canvas != null) {
+                try {
+                    blankArea(canvas, scaled);
+                    drawBorder(canvas);
+                    refreshField(canvas);
+                    drawFigure(canvas);
+                } finally {
+                    holder.unlockCanvasAndPost(canvas);
                 }
             }
         }

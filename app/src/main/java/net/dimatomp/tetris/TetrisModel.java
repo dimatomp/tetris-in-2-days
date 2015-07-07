@@ -175,7 +175,6 @@ public class TetrisModel implements Parcelable {
 
     public boolean moveX(final int dx) {
         final Rect oldRect;
-        final Rect newRect;
         synchronized (this) {
             oldRect = getFigureRect();
             setX(getX() + dx);
@@ -183,12 +182,11 @@ public class TetrisModel implements Parcelable {
                 setX(getX() - dx);
                 return false;
             }
-            newRect = getFigureRect();
         }
         notify(new Consumer() {
             @Override
             public void apply(Callback callback) {
-                callback.onFigureMoved(oldRect, newRect);
+                callback.onFigureMoved(oldRect);
             }
         });
         return true;
@@ -196,7 +194,6 @@ public class TetrisModel implements Parcelable {
 
     public boolean moveY(final int dy) {
         final Rect oldRect;
-        final Rect newRect;
         synchronized (this) {
             oldRect = getFigureRect();
             setY(getY() + dy);
@@ -204,12 +201,11 @@ public class TetrisModel implements Parcelable {
                 setY(getY() - dy);
                 return false;
             }
-            newRect = getFigureRect();
         }
         notify(new Consumer() {
             @Override
             public void apply(Callback callback) {
-                callback.onFigureMoved(oldRect, newRect);
+                callback.onFigureMoved(oldRect);
             }
         });
         return true;
@@ -227,7 +223,6 @@ public class TetrisModel implements Parcelable {
 
     public boolean turnClockwise(int rot) {
         final Rect oldRect;
-        final Rect newRect;
         synchronized (this) {
             oldRect = getFigureRect();
             setTurnDegree(getTurnDegree() + rot);
@@ -235,12 +230,11 @@ public class TetrisModel implements Parcelable {
                 setTurnDegree(getTurnDegree() - rot);
                 return false;
             }
-            newRect = getFigureRect();
         }
         notify(new Consumer() {
             @Override
             public void apply(Callback callback) {
-                callback.onFigureMoved(oldRect, newRect);
+                callback.onFigureMoved(oldRect);
             }
         });
         return true;
@@ -248,7 +242,6 @@ public class TetrisModel implements Parcelable {
 
     public void throwFigure(int figType, int degree) {
         final Rect oldArea;
-        final Rect newRect;
         List<Integer> remLines = new ArrayList<>();
         synchronized (this) {
             oldArea = getFigureRect();
@@ -283,7 +276,6 @@ public class TetrisModel implements Parcelable {
             }
             placeNewFigure(figType, degree);
             if (!isValidState()) {
-                field = new boolean[field.length][field[0].length];
                 notify(new Consumer() {
                     @Override
                     public void apply(Callback callback) {
@@ -292,7 +284,6 @@ public class TetrisModel implements Parcelable {
                 });
                 return;
             }
-            newRect = getFigureRect();
         }
         final int[] result = new int[remLines.size()];
         for (int i = 0; i < remLines.size(); i++)
@@ -303,7 +294,7 @@ public class TetrisModel implements Parcelable {
                 if (result.length != 0) {
                     callback.onLinesRemoved(result);
                 }
-                callback.onFigureMoved(oldArea, newRect);
+                callback.onFigureMoved(oldArea);
             }
         });
     }
@@ -339,7 +330,7 @@ public class TetrisModel implements Parcelable {
     public interface Callback {
         void onLinesRemoved(int... pos);
 
-        void onFigureMoved(Rect oldArea, Rect newArea);
+        void onFigureMoved(Rect oldArea);
 
         void onGameOver();
     }

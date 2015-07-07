@@ -78,7 +78,7 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     }
 
     @Override
-    public void onFigureMoved(Rect oldArea, Rect newArea) {
+    public void onFigureMoved(Rect oldArea) {
     }
 
     public void moveLeft(View button) {
