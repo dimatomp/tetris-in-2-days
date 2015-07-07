@@ -14,11 +14,13 @@ import static net.dimatomp.tetris.HighScoreStorage.HighScoreColumns.VALUE;
 
 public class MainActivity extends Activity implements TetrisModel.Callback {
     private int points = 0;
+    private TetrisView tetrisView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        tetrisView = (TetrisView) findViewById(R.id.field);
         if (savedInstanceState != null && savedInstanceState.containsKey("points")) {
             points = savedInstanceState.getInt("points");
             ((TextView) findViewById(R.id.score)).setText(Integer.toString(points));
@@ -27,16 +29,21 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
 
     @Override
     protected void onResume() {
-        super.onResume();
-        TetrisView view = (TetrisView) findViewById(R.id.field);
-        view.startPlaying();
-        view.getModel().registerCallback(this);
+        super.onStart();
+        tetrisView.startPlaying();
+        tetrisView.getModel().registerCallback(this);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        ((TetrisView) findViewById(R.id.field)).stopPlaying();
+        tetrisView.stopPlaying();
+    }
+
+    @Override
+    protected void onDestroy() {
+        tetrisView.shutdownGameThread();
+        super.onDestroy();
     }
 
     @Override
@@ -51,7 +58,12 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     }
 
     public void speedUp(View button) {
-        ((TetrisView) findViewById(R.id.field)).speedUp();
+        tetrisView.runOnGameThread(new Runnable() {
+            @Override
+            public void run() {
+                tetrisView.speedUp();
+            }
+        });
     }
 
     @Override
@@ -62,6 +74,7 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
 
     @Override
     public void onGameOver() {
+        tetrisView.stopPlaying();
         if (points > 0) {
             ContentValues values = new ContentValues(2);
             values.put(TIME, System.currentTimeMillis());
@@ -82,14 +95,29 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     }
 
     public void moveLeft(View button) {
-        ((TetrisView) findViewById(R.id.field)).getModel().moveX(-1);
+        tetrisView.runOnGameThread(new Runnable() {
+            @Override
+            public void run() {
+                tetrisView.getModel().moveX(-1);
+            }
+        });
     }
 
     public void moveRight(View button) {
-        ((TetrisView) findViewById(R.id.field)).getModel().moveX(1);
+        tetrisView.runOnGameThread(new Runnable() {
+            @Override
+            public void run() {
+                tetrisView.getModel().moveX(1);
+            }
+        });
     }
 
     public void turnRight(View button) {
-        ((TetrisView) findViewById(R.id.field)).getModel().turnClockwise(-1);
+        tetrisView.runOnGameThread(new Runnable() {
+            @Override
+            public void run() {
+                tetrisView.getModel().turnClockwise(-1);
+            }
+        });
     }
 }

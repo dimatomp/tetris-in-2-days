@@ -175,13 +175,11 @@ public class TetrisModel implements Parcelable {
 
     public boolean moveX(final int dx) {
         final Rect oldRect;
-        synchronized (this) {
-            oldRect = getFigureRect();
-            setX(getX() + dx);
-            if (!isValidState()) {
-                setX(getX() - dx);
-                return false;
-            }
+        oldRect = getFigureRect();
+        setX(getX() + dx);
+        if (!isValidState()) {
+            setX(getX() - dx);
+            return false;
         }
         notify(new Consumer() {
             @Override
@@ -193,14 +191,11 @@ public class TetrisModel implements Parcelable {
     }
 
     public boolean moveY(final int dy) {
-        final Rect oldRect;
-        synchronized (this) {
-            oldRect = getFigureRect();
-            setY(getY() + dy);
-            if (!isValidState()) {
-                setY(getY() - dy);
-                return false;
-            }
+        final Rect oldRect = getFigureRect();
+        setY(getY() + dy);
+        if (!isValidState()) {
+            setY(getY() - dy);
+            return false;
         }
         notify(new Consumer() {
             @Override
@@ -223,13 +218,11 @@ public class TetrisModel implements Parcelable {
 
     public boolean turnClockwise(int rot) {
         final Rect oldRect;
-        synchronized (this) {
-            oldRect = getFigureRect();
-            setTurnDegree(getTurnDegree() + rot);
-            if (!isValidState()) {
-                setTurnDegree(getTurnDegree() - rot);
-                return false;
-            }
+        oldRect = getFigureRect();
+        setTurnDegree(getTurnDegree() + rot);
+        if (!isValidState()) {
+            setTurnDegree(getTurnDegree() - rot);
+            return false;
         }
         notify(new Consumer() {
             @Override
@@ -243,47 +236,45 @@ public class TetrisModel implements Parcelable {
     public void throwFigure(int figType, int degree) {
         final Rect oldArea;
         List<Integer> remLines = new ArrayList<>();
-        synchronized (this) {
-            oldArea = getFigureRect();
-            for (int y = Math.max(-getY(), 0) - 1; y >= 0; y--) {
-                for (int x = 0; x < getFigureWidth(); x++)
-                    if (isFigurePart(x, y)) {
-                        field = new boolean[field.length][field[0].length];
-                        notify(new Consumer() {
-                            @Override
-                            public void apply(Callback callback) {
-                                callback.onGameOver();
-                            }
-                        });
-                        return;
+        oldArea = getFigureRect();
+        for (int y = Math.max(-getY(), 0) - 1; y >= 0; y--) {
+            for (int x = 0; x < getFigureWidth(); x++)
+                if (isFigurePart(x, y)) {
+                    field = new boolean[field.length][field[0].length];
+                    notify(new Consumer() {
+                        @Override
+                        public void apply(Callback callback) {
+                            callback.onGameOver();
                     }
-            }
-            for (int x = Math.max(0, -getX()); x < getFigureWidth() && x + getX() < getWidth(); x++)
-                for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
-                    field[x + getX()][y + getY()] |= isFigurePart(x, y);
+                    });
+                    return;
                 }
+        }
+        for (int x = Math.max(0, -getX()); x < getFigureWidth() && x + getX() < getWidth(); x++)
             for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
-                boolean ok = true;
-                for (int x = 0; ok && x < getWidth(); x++)
-                    ok = isOccupied(x, y + getY());
-                if (ok) {
-                    for (int x = 0; x < getWidth(); x++) {
-                        System.arraycopy(field[x], 0, field[x], 1, y + getY());
-                        field[x][0] = false;
-                    }
-                    remLines.add(y + getY());
+                field[x + getX()][y + getY()] |= isFigurePart(x, y);
+            }
+        for (int y = Math.max(0, -getY()); y < getFigureHeight() && y + getY() < getHeight(); y++) {
+            boolean ok = true;
+            for (int x = 0; ok && x < getWidth(); x++)
+                ok = isOccupied(x, y + getY());
+            if (ok) {
+                for (int x = 0; x < getWidth(); x++) {
+                    System.arraycopy(field[x], 0, field[x], 1, y + getY());
+                    field[x][0] = false;
                 }
+                remLines.add(y + getY());
             }
-            placeNewFigure(figType, degree);
-            if (!isValidState()) {
-                notify(new Consumer() {
-                    @Override
-                    public void apply(Callback callback) {
-                        callback.onGameOver();
-                    }
-                });
-                return;
-            }
+        }
+        placeNewFigure(figType, degree);
+        if (!isValidState()) {
+            notify(new Consumer() {
+                @Override
+                public void apply(Callback callback) {
+                    callback.onGameOver();
+                }
+            });
+            return;
         }
         final int[] result = new int[remLines.size()];
         for (int i = 0; i < remLines.size(); i++)
@@ -323,7 +314,7 @@ public class TetrisModel implements Parcelable {
         figurePosY = -getFigureHeight() + 1;
     }
 
-    public synchronized Rect getFigureRect() {
+    public Rect getFigureRect() {
         return new Rect(getX(), getY(), getX() + getFigureWidth(), getY() + getFigureHeight());
     }
 
