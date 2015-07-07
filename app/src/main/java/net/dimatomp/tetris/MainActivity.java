@@ -76,10 +76,15 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     public void onGameOver() {
         tetrisView.stopPlaying();
         if (points > 0) {
-            ContentValues values = new ContentValues(2);
-            values.put(TIME, System.currentTimeMillis());
-            values.put(VALUE, points);
-            getContentResolver().insert(Uri.parse("content://net.dimatomp.tetris/highscore"), values);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    ContentValues values = new ContentValues(2);
+                    values.put(TIME, System.currentTimeMillis());
+                    values.put(VALUE, points);
+                    getContentResolver().insert(Uri.parse("content://net.dimatomp.tetris/highscore"), values);
+                }
+            }).start();
         }
         runOnUiThread(new Runnable() {
             @Override
