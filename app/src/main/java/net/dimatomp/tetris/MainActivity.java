@@ -36,14 +36,8 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
 
     @Override
     protected void onPause() {
-        super.onPause();
         tetrisView.stopPlaying();
-    }
-
-    @Override
-    protected void onDestroy() {
-        tetrisView.shutdownGameThread();
-        super.onDestroy();
+        super.onPause();
     }
 
     @Override
@@ -58,12 +52,7 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     }
 
     public void speedUp(View button) {
-        tetrisView.runOnGameThread(new Runnable() {
-            @Override
-            public void run() {
-                tetrisView.speedUp();
-            }
-        });
+        tetrisView.speedUp();
     }
 
     @Override
@@ -76,23 +65,13 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     public void onGameOver() {
         tetrisView.stopPlaying();
         if (points > 0) {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    ContentValues values = new ContentValues(2);
-                    values.put(TIME, System.currentTimeMillis());
-                    values.put(VALUE, points);
-                    getContentResolver().insert(Uri.parse("content://net.dimatomp.tetris/highscore"), values);
-                }
-            }).start();
+            ContentValues values = new ContentValues(2);
+            values.put(TIME, System.currentTimeMillis());
+            values.put(VALUE, points);
+            getContentResolver().insert(Uri.parse("content://net.dimatomp.tetris/highscore"), values);
         }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(MainActivity.this, "Game Over", Toast.LENGTH_SHORT).show();
-                finish();
-            }
-        });
+        Toast.makeText(MainActivity.this, "Game Over", Toast.LENGTH_SHORT).show();
+        finish();
     }
 
     @Override
@@ -100,29 +79,14 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     }
 
     public void moveLeft(View button) {
-        tetrisView.runOnGameThread(new Runnable() {
-            @Override
-            public void run() {
-                tetrisView.getModel().moveX(-1);
-            }
-        });
+        tetrisView.getModel().moveX(-1);
     }
 
     public void moveRight(View button) {
-        tetrisView.runOnGameThread(new Runnable() {
-            @Override
-            public void run() {
-                tetrisView.getModel().moveX(1);
-            }
-        });
+        tetrisView.getModel().moveX(1);
     }
 
     public void turnRight(View button) {
-        tetrisView.runOnGameThread(new Runnable() {
-            @Override
-            public void run() {
-                tetrisView.getModel().turnClockwise(-1);
-            }
-        });
+        tetrisView.getModel().turnClockwise(-1);
     }
 }

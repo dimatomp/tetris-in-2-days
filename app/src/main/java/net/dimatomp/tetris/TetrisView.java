@@ -12,29 +12,24 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
     public static final int FIELD_SIDE = 24;
     private static final Random rng = new Random();
-    private final ScheduledExecutorService scheduledMove = Executors.newSingleThreadScheduledExecutor();
-    private ScheduledFuture lastScheduled;
     private TetrisModel model;
+    private long interval;
 
     private Runnable moveDown = new Runnable() {
         @Override
         public void run() {
-            if (!model.moveY(1)) {
-                int fType = rng.nextInt(TetrisModel.getFiguresCount());
-                int dir = rng.nextInt(TetrisModel.getPosCount(fType));
-                model.throwFigure(fType, dir);
-                if (lastScheduled != null) {
-                    lastScheduled.cancel(false);
-                    lastScheduled = scheduledMove.scheduleWithFixedDelay(moveDown, 500, 500, TimeUnit.MILLISECONDS);
+            if (interval > 0) {
+                if (!model.moveY(1)) {
+                    int fType = rng.nextInt(TetrisModel.getFiguresCount());
+                    int dir = rng.nextInt(TetrisModel.getPosCount(fType));
+                    model.throwFigure(fType, dir);
+                    interval = 500;
                 }
+                postDelayed(this, interval);
             }
         }
     };
@@ -54,19 +49,12 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         getHolder().addCallback(this);
     }
 
-    public void shutdownGameThread() {
-        scheduledMove.shutdown();
-    }
-
     @Override
     public void onGameOver() {
     }
 
     public void stopPlaying() {
-        if (lastScheduled == null)
-            return;
-        lastScheduled.cancel(true);
-        lastScheduled = null;
+        interval = 0;
     }
 
     @Override
@@ -88,24 +76,23 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     public void speedUp() {
-        if (lastScheduled == null)
-            return;
-        lastScheduled.cancel(false);
-        lastScheduled = scheduledMove.scheduleWithFixedDelay(moveDown, 50, 50, TimeUnit.MILLISECONDS);
+        if (interval != 0)
+            interval = 50;
     }
 
     public void startPlaying() {
-        if (lastScheduled != null)
-            return;
-        if (model == null) {
-            model = new TetrisModel(FIELD_SIDE, FIELD_SIDE);
-            int fType = rng.nextInt(TetrisModel.getFiguresCount());
-            int dir = rng.nextInt(TetrisModel.getPosCount(fType));
-            model.placeNewFigure(fType, dir);
+        if (interval == 0) {
+            if (model == null) {
+                model = new TetrisModel(FIELD_SIDE, FIELD_SIDE);
+                int fType = rng.nextInt(TetrisModel.getFiguresCount());
+                int dir = rng.nextInt(TetrisModel.getPosCount(fType));
+                model.placeNewFigure(fType, dir);
+            }
+            refresh(null);
+            model.registerCallback(this);
+            interval = 500;
+            postDelayed(moveDown, interval);
         }
-        refresh(null);
-        model.registerCallback(this);
-        lastScheduled = scheduledMove.scheduleWithFixedDelay(moveDown, 500, 500, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -235,9 +222,5 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
                 holder.unlockCanvasAndPost(canvas);
             }
         }
-    }
-
-    public void runOnGameThread(Runnable runnable) {
-        scheduledMove.execute(runnable);
     }
 }
