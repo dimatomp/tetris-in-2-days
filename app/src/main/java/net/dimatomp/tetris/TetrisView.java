@@ -13,7 +13,7 @@ import android.view.SurfaceView;
 
 import java.util.Random;
 
-public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisModel.Callback {
+public class TetrisView extends SurfaceView implements TetrisModel.Callback {
     public static final int FIELD_SIDE = 24;
     private static final Random rng = new Random();
     private TetrisModel model;
@@ -24,29 +24,27 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         public void run() {
             if (interval > 0) {
                 if (!model.moveY(1)) {
+                    interval = 500;
                     int fType = rng.nextInt(TetrisModel.getFiguresCount());
                     int dir = rng.nextInt(TetrisModel.getPosCount(fType));
                     model.throwFigure(fType, dir);
-                    interval = 500;
                 }
-                postDelayed(this, interval);
+                if (interval > 0)
+                    postDelayed(this, interval);
             }
         }
     };
 
     public TetrisView(Context context) {
         super(context);
-        getHolder().addCallback(this);
     }
 
     public TetrisView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        getHolder().addCallback(this);
     }
 
     public TetrisView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        getHolder().addCallback(this);
     }
 
     @Override
@@ -93,20 +91,6 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
             interval = 500;
             postDelayed(moveDown, interval);
         }
-    }
-
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        startPlaying();
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        stopPlaying();
     }
 
     private int getHorOffset() {
