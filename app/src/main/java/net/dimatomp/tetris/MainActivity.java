@@ -65,6 +65,7 @@ public class MainActivity extends Activity implements TetrisModel.Callback {
     public void onGameOver() {
         tetrisView.stopPlaying();
         if (points > 0) {
+            points = 0;
             ContentValues values = new ContentValues(2);
             values.put(TIME, System.currentTimeMillis());
             values.put(VALUE, points);
